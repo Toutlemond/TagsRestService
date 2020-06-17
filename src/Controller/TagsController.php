@@ -83,6 +83,8 @@ class TagsController extends AbstractController
                 $ansver[] = [
                     'task' => $oneTask->getToken(),
                     'url' => $oneTask->getUrl(),
+                    'ready' => $oneTask->getReady(),
+                    'answer' => $oneTask->getAnswer(),
                 ];
             }
             $response->setContent(json_encode($ansver));
@@ -124,63 +126,75 @@ class TagsController extends AbstractController
                 'error' => true,
             ]));
         } else {
-            $url = $task->geturl();
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLINFO_HEADER_OUT, true);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            if ($task->getReady() != true) {
+                $url = $task->geturl();
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $url);
+                curl_setopt($ch, CURLINFO_HEADER_OUT, true);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
 
-            $content = curl_exec($ch);
-            $info = curl_getinfo($ch);
+                $content = curl_exec($ch);
+                $info = curl_getinfo($ch);
 
-            $error = false;
+                $error = false;
 
-            if ($content === false) {
-                $data = false;
-                $error["message"] = curl_error($ch);
-                $error["code"] = self::$error_codes[curl_errno($ch)];
+                if ($content === false) {
+                    $data = false;
+                    $error["message"] = curl_error($ch);
+                    $error["code"] = self::$error_codes[curl_errno($ch)];
 
-                $response->setContent(json_encode([
-                    'data' => $error,
-                    'error' => true,
+                    $response->setContent(json_encode([
+                        'data' => $error,
+                        'error' => true,
 
-                ]));
+                    ]));
 
-            } else {
-                $data["content"] = $content;
-                $data["info"] = $info;
+                } else {
+                    $data["content"] = $content;
+                    $data["info"] = $info;
 
-                curl_close($ch);
+                    curl_close($ch);
 
-                //Для начала найдем все теги какие есть
-                $str = '/<(\w+)\s/';
-                preg_match_all($str, $data["content"], $matches);
-
-                $allTags = [];
-
-                foreach ($matches[0] as $match) {
-                    $match = (trim(str_replace("<", '', $match)));
-                    if (!in_array($match, $allTags)) {
-                        $allTags[$match] = null;
-                    }
-                }
-
-                /*
-                 * количество тэгов каждого типа на странице
-                 */
-                foreach ($allTags as $tag => &$number) {
-                    $str = '/<\s*' . $tag . '[^>]*>(.*?)/';
+                    //Для начала найдем все теги какие есть
+                    $str = '/<(\w+)\s/';
                     preg_match_all($str, $data["content"], $matches);
 
-                    $number = count($matches[0]);
-                }
+                    $allTags = [];
 
+                    foreach ($matches[0] as $match) {
+                        $match = (trim(str_replace("<", '', $match)));
+                        if (!in_array($match, $allTags)) {
+                            $allTags[$match] = null;
+                        }
+                    }
+
+                    /*
+                     * количество тэгов каждого типа на странице
+                     */
+                    foreach ($allTags as $tag => &$number) {
+                        $str = '/<\s*' . $tag . '[^>]*>(.*?)/';
+                        preg_match_all($str, $data["content"], $matches);
+                        $number = count($matches[0]);
+                    }
+                    $task->setReady(true);
+                    $task->setAnswer(json_encode($allTags));
+
+                    $entityManager = $this->getDoctrine()->getManager();
+                    $entityManager->persist($task);
+                    $entityManager->flush();
+
+                    $response->setContent(json_encode([
+                        'data' => $allTags,
+                    ]));
+                }
+            } else {
+         
+                $allTags = $task->getAnswer();
                 $response->setContent(json_encode([
                     'data' => $allTags,
                 ]));
             }
-
         }
 
         $response->headers->set('Content-Type', 'application/json');

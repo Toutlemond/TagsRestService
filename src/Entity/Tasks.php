@@ -27,6 +27,16 @@ class Tasks
      */
     private $url;
 
+    /**
+     * @ORM\Column(type="integer",nullable=true)
+     */
+    private $ready;
+
+    /**
+     * @ORM\Column(type="text", nullable=true)
+     */
+    private $answer;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -52,6 +62,30 @@ class Tasks
     public function setUrl(string $url): self
     {
         $this->url = $url;
+
+        return $this;
+    }
+
+    public function getReady(): ?bool
+    {
+        return $this->ready;
+    }
+
+    public function setReady(bool $ready): self
+    {
+        $this->ready = $ready;
+
+        return $this;
+    }
+
+    public function getAnswer(): ?string
+    {
+        return $this->answer;
+    }
+
+    public function setAnswer(?string $answer): self
+    {
+        $this->answer = $answer;
 
         return $this;
     }
