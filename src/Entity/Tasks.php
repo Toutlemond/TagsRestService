@@ -20,23 +20,27 @@ class Tasks
     /**
      * @ORM\Column(type="string", length=255)
      */
-    private $token;
+    public $token;
 
     /**
      * @ORM\Column(type="text")
      */
-    private $url;
+    public $url;
 
     /**
      * @ORM\Column(type="integer",nullable=true)
      */
-    private $ready;
+    public $ready;
 
     /**
      * @ORM\Column(type="text", nullable=true)
      */
-    private $answer;
+    public $answer;
 
+    public function get(): ?object
+    {
+        return $this;
+    }
     public function getId(): ?int
     {
         return $this->id;
