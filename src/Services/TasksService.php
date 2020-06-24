@@ -10,6 +10,9 @@ namespace App\Services;
 
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Tasks;
+use PhpParser\Node\Expr\Cast\Object_;
+use SymfonyBundles\RedisBundle\Redis;
+
 
 class TasksService
 {
@@ -42,8 +45,10 @@ class TasksService
         $task->setUrl($url);
 
         $entityManager->persist($task);
-
         $entityManager->flush();
+
+        $this->setTask($task);
+
         $answer = [
             'id' => $task->getId(),
             'token' => $token
@@ -58,41 +63,53 @@ class TasksService
      * *
      * @param String $token
      *
-     * @return Array $task
+     * @return Object $task
      *
      */
-    public function getTask($token): Array
+    public function getTask($token): Object
     {
 
         $task = $this->em
             ->getRepository(Tasks::class)
             ->findOneBy(['token' => $token]);
 
-        if (!$task) {
-            return [
-                'data' => 'No task found for token ' . $token,
-                'error' => true,
-            ];
-        } else {
-            if ($task->getReady() != true) {
-                $this->executeTask($task);
-            }
+        if (!$task) return null;
+        return $task->get();
 
-            return [
-                'data' => $task->get(),
-            ];
 
+    }
+
+    /**
+     * Постановка задания в очередь
+     *
+     * @param Object $task
+     *
+     * @return void
+     *
+     */
+    protected function setTask($task)
+    {
+        $redis = new Redis\Client(array(
+            'host' => 'localhost',
+            'port' => 6379,
+            'database' => 0,
+
+        ));
+        if (isset($task)) {
+            $redis->lPush("message_queue", json_encode($task));
         }
     }
 
     /**
-     * Получение информации о странице исходя из токена задания
+     * Выполнение задания
      *
      * *
      * @param object $task
      *
+     * @return boolean
+     *
      */
-    public function executeTask($task)
+    public function executeTask($task): bool
     {
 
         $ch = curl_init();
@@ -147,11 +164,16 @@ class TasksService
         $entityManager = $this->em;
         $entityManager->persist($task);
         $entityManager->flush();
+        if ($error == false) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
 
     /**
-     * Тестовый метод - не по заданию.
+     * Тестовый метод
      *
      *
      * Выводит все задания в базе - требовался для отладки
@@ -160,7 +182,7 @@ class TasksService
      * @return Response
      * @Route("/tags/tasks")
      */
-     //TODO Метод отсюда надо выкинуть ибо он не часть одной задачи
+    //TODO Метод отсюда надо выкинуть ибо он не часть единственной задачи
     public function getTasks(): Array
     {
         $repository = $this->em->getRepository(Tasks::class);

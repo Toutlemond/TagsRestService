@@ -57,7 +57,7 @@ class TagsController extends AbstractController
 
 
     /**
-     * Тестовый метод - не по заданию.
+     * Тестовый метод
      *
      * Выводит все задания в базе - требовался для отладки
      *
@@ -89,13 +89,27 @@ class TagsController extends AbstractController
      *
      * @Route("/tags/{token}", name="tags_show")
      */
-    public function show($token,TasksService $Tasks)
+    public function show($token, TasksService $Tasks)
     {
         $task = $Tasks->getTask($token);
+
+        if (!$task) {
+            $result = [
+                'data' => 'No task found for token ' . $token,
+                'error' => true,
+            ];
+        } else {
+            if ($task->getReady() != true) {
+                $result = [
+                    'data' => sprintf('for key %s the task is still in processing... ', $token),
+                    'error' => false,
+                ];
+            } else {
+                $result = $task;
+            }
+        }
         $response = new Response();
-
-        $response->setContent(json_encode($task));
-
+        $response->setContent(json_encode($result));
         $response->headers->set('Content-Type', 'application/json');
 
         return $response;
