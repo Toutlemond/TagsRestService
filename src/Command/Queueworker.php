@@ -47,6 +47,7 @@ class Queueworker extends Command
 
     }
 
+
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $output->writeln([
@@ -85,8 +86,6 @@ class Queueworker extends Command
                     '--Job"s broken--'
                 ]);
             }
-            //На деле это не нужно - пока оставлю для проверки.
-            sleep(1);
         }
 
 

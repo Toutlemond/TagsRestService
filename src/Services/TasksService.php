@@ -140,7 +140,9 @@ class TasksService
             preg_match_all($str, $data["content"], $matches);
 
             $ansver = [];
-
+            //Для иммитации длительной обработки задания нужно раскомментаровать задержку в 20 секунд
+            sleep(20);
+            
             foreach ($matches[0] as $match) {
                 $match = (trim(str_replace("<", '', $match)));
                 if (!in_array($match, $ansver)) {
